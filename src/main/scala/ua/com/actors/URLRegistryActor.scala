@@ -1,5 +1,6 @@
 package ua.com.actors
 import akka.actor._
+import ua.com.actors.CoordinatorActor.SaveURL
 import ua.com.entity._
 
 object URLRegistryActor{
@@ -27,10 +28,10 @@ class URLRegistryActor(makeShortURLActor: ActorRef) extends Actor {
         println("No such url in db")
         sender() ! NotFoundMessage(x)
             }
-    case a: (ShortURL, ValidURL)  =>
-      println("Saved short url:" + a._1.url)
-      urlMap += a._1.url -> a._2.url
+    case a: SaveURL  =>
+      println("Saved short url:" + a.url1)
+      urlMap += a.url1 -> a.url2
       println("Map:" + urlMap.toString)
-        sender() ! a._1
+        sender() ! ShortURL(a.url1)
   }
 }

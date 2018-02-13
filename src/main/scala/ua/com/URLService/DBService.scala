@@ -1,16 +1,15 @@
-package ua.com.service
-import java.sql.{Connection, DriverManager, ResultSet, SQLException}
+package URLService
 
+import java.sql.{Connection, ResultSet}
+
+import ua.com.DBConfig
 import ua.com.entity.{ShortURL, ValidURL}
 
-object DBService {
+object DBService extends DBConfig {
 
-  final val DB_DRIVER: String = "org.h2.Driver"
-  final val DB_CONNECTION: String = "jdbc:h2:~/urlShortener"
-  final val DB_USER: String = "sa"
-  final val DB_PASSWORD: String = ""
 
-  private def getDBConnection(): Connection = {
+lazy val conn = dbConnection
+  /*private def getDBConnection(): Connection = {
     try {
       Class.forName(DB_DRIVER)
     } catch {
@@ -18,18 +17,18 @@ object DBService {
     }
     val dbConnection: Connection = DriverManager.getConnection(DB_CONNECTION, DB_USER, DB_PASSWORD)
     dbConnection
-  }
+  }*/
 
   private def createDbStructure(conn: Connection): Unit = {
     val sql1 = """
       create schema if not exists urlShortener;
 
       set schema urlShortener;
-
+|
+ |        long_url varchar(255) not null,
       create table if not exists urls (
         id int auto_increment primary key,
         short_url varchar(255) not null,
-        long_url varchar(255) not null,
        clicks int not null);"""
 
     val sql2: String = "create INDEX ind_short on urls(short_url);"
@@ -45,7 +44,7 @@ object DBService {
 
   def main(args: Array[String]): Unit = {
 
-    val conn: Connection = getDBConnection()
+    //val conn: Connection = getDBConnection()
     createDbStructure(conn)
     val stmt = conn.createStatement()
     try {
@@ -91,7 +90,6 @@ object DBService {
 
       def urlStats(short: String) = {
         //case class StatsURL(totalURLCount: Int, totalClickCount: Int)
-
         //val totalURL
         //SELECT COUNT(*) FROM table
         val rs1: ResultSet = stmt.executeQuery("SELECT COUNT(*) AS total_count FROM urls")
@@ -99,12 +97,10 @@ object DBService {
         while (rs1.next()) {
           println(rs1.getInt("total_count"))
         }
-
         //all requests
         // SELECT SUM(CLICKS)FROM urls
         val rs2: ResultSet = stmt.executeQuery("SELECT SUM(CLICKS) AS total_clicks FROM urls")
         // val totalClicks = rs1.getInt("total_clicks")
-
         println(rs2)
         //clicks per url
         //"SELECT CLICKS FROM urls WHERE SHORT_URL = '" + short+"'"

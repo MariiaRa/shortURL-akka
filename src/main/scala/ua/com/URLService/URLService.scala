@@ -1,4 +1,4 @@
-package URLService
+package ua.com.URLService
 
 import java.util.regex.Pattern
 

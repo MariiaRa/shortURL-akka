@@ -1,9 +1,9 @@
 import akka.actor._
-import ua.com.entity.{ShortURL, ValidURL}
+import ua.com.actors.CoordinatorActor.SaveURL
+import ua.com.entity.ValidURL
 
 object MakeShortURLActor {
   def props: Props = Props[MakeShortURLActor]
-
   val alphabet: String = "bcdfghjkmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ23456789-_"
   val randomStringLength = 8
 
@@ -21,10 +21,11 @@ class MakeShortURLActor extends Actor {
   import MakeShortURLActor._
 
   override def receive = {
-    case ValidURL(url) =>
+    case a: ValidURL =>
       println("Received valid url for shortening")
-      val shortName = "www.short-url/"+ randomAlphaNumericString(alphabet)
+      val shortName = "www."+ randomAlphaNumericString(alphabet)
      /* println("Short url: " + shortName)*/
-     sender() ! (ShortURL(shortName), ValidURL(url))
+   //  sender() ! (ShortURL(shortName), a)
+      sender() ! SaveURL(shortName, a.url)
   }
 }

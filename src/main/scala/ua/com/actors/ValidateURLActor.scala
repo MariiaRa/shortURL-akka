@@ -24,9 +24,11 @@ import ua.com.entity._
     def receive = {
       case a: InputURL =>
         if (isValid(a.url)) {
-          sender() ! ValidURL(a.url)
+         // sender() ! ValidURL(a.url)
+          sender() ! "Valid url."
           println("Valid url.")
           } else {
+          sender() ! "Invalid url. Please, please provide a valid URL."
           println("Invalid url. Please, please provide a valid URL.")
         }
     }

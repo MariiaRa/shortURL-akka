@@ -1,4 +1,4 @@
-import URLService.UrlShortenerServiceImpl
+import ua.com.URLService.UrlShortenerServiceImpl
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
