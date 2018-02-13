@@ -1,6 +1,6 @@
 package ua.com.actors
 
-import URLService.UrlShortenerServiceImpl
+import ua.com.URLService.UrlShortenerServiceImpl
 import akka.actor._
 import ua.com.entity.{InputURL, ShortURL, ValidURL}
 
