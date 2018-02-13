@@ -1,14 +1,12 @@
 package ua.com.actors
 
-import java.util.regex.Pattern
-
-import akka.actor.{Actor, ActorLogging, Props}
-import ua.com.entity.{InputURL, ShortURL}
-
+import URLService.UrlShortenerServiceImpl
+import akka.actor._
+import ua.com.entity.{InputURL, ShortURL, ValidURL}
 
 object URLRegistryActor2 {
 
-  private def findKeyByValue(map: collection.mutable.Map[String, String], value: String): String = {
+  /* private def findKeyByValue(map: collection.mutable.Map[String, String], value: String): String = {
     map.filter{ case (k, v) => v == value }.keys.mkString}
 
     val urlPattern = "([A-Za-z]{3,9}:(?:\\/\\/)?)+([a-zA-Z0-9.-]+(:[a-zA-Z0-9.&%$-]+)*@)*" +
@@ -32,17 +30,17 @@ object URLRegistryActor2 {
         sb.append(chars(randomNum))
       }
       sb.toString
-    }
+    }*/
 
-    def props: Props = Props[URLRegistryActor2]
-  }
+  def props(urlService: UrlShortenerServiceImpl): Props = Props(new URLRegistryActor2(urlService))
+  // def props: Props = Props[URLRegistryActor2]
+}
 
-class URLRegistryActor2 extends Actor with ActorLogging {
-  import URLRegistryActor2._
+class URLRegistryActor2(urlService: UrlShortenerServiceImpl) extends Actor {
 
   def receive: Receive = {
 
-    case a: InputURL => {
+    /* case a: InputURL => {
       if (isValid(a.url)) {
         if (urlMap.exists(_._2 == a.url)) {
           val short = findKeyByValue(urlMap, a.url)
@@ -59,5 +57,14 @@ class URLRegistryActor2 extends Actor with ActorLogging {
       val inputURL = urlMap(b.url)
       println("input: "+ inputURL)
 sender() ! InputURL(inputURL)
+  }*/
+    case a: InputURL => {
+      if (urlService.validate(a.url)) {
+        sender() ! urlService.shorten(ValidURL(a.url))
+      }
+    }
+    case b: ShortURL =>
+      sender() ! urlService.get(b.url)
   }
+
 }

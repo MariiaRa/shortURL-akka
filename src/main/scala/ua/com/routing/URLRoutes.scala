@@ -11,8 +11,10 @@ import akka.pattern.ask
 import akka.util.Timeout
 import ua.com.entity.{InputURL, ShortURL}
 import ua.com.serializers.JsonSupport
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 trait URLRoutes extends JsonSupport{
 
@@ -39,21 +41,30 @@ trait URLRoutes extends JsonSupport{
             entity(as[InputURL]) { url =>
               val shortURLCreated: Future[ShortURL] =
                 (registrator2 ? url).mapTo[ShortURL]
-              onSuccess(shortURLCreated) { created =>
-                complete((StatusCodes.Created, created))
+              onComplete(shortURLCreated) {
+                case Success(shortURLCreated) => complete(StatusCodes.Created, shortURLCreated)
+                case Failure(ex) => println("Invalid url. Please, please provide a valid URL."); complete(400, None)
               }
+              /*onSuccess(shortURLCreated) { created =>
+                complete(StatusCodes.Created, created)
+              }*/
             }
           }
         },
-        path(Segment) { name =>
+        path(Remaining) { name =>
           get {
-            println("segment: " +name) //http://localhost:8080/urls/<shortURL>
+            println("segment: " + name) //http://localhost:8080/urls/<shortURL>
             val maybeURL: Future[InputURL] =
               (registrator2 ? ShortURL(name)).mapTo[InputURL]
-            rejectEmptyResponse {
+            /*       rejectEmptyResponse {
               complete(maybeURL)
+            }*/
+            onComplete(maybeURL) {
+              case Success(maybeURL) => complete(StatusCodes.Found, maybeURL)
+              case Failure(ex) => complete(404, ex.getMessage)
             }
           }
+
         }
       )
     }
