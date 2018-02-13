@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext
   def get(code: String): InputURL
 }*/
 
-class UrlShortenerServiceImpl(implicit val executionContext: ExecutionContext) {
+class UrlService(implicit val executionContext: ExecutionContext) {
 
   import ua.com.DBConfig.dbConnection
 
