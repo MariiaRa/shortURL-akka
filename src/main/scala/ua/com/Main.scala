@@ -4,11 +4,14 @@ import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import ua.com.Service.UrlService
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 import ua.com.actors._
 import ua.com.routing.URLRoutes
+import ua.com.service.{DBService, UrlService}
 
 import scala.io.StdIn
+import scala.reflect.io.{File, Path}
 
 object Main extends URLRoutes{
   import ua.com.DBConfig._
@@ -18,33 +21,34 @@ object Main extends URLRoutes{
   implicit val executionContext = system.dispatcher
   val conn = dbConnection
   val urlService = new UrlService()
-  val registrator2: ActorRef = system.actorOf(URLRegistryActor2.props(urlService), "Registrator")
+  val dbService = new DBService(urlService)
+  val coordinator: ActorRef = system.actorOf(CoordinatorActor.props(urlService, dbService), "Registrator")
 
-  private def createDbStructure(conn: Connection): Unit = {
-   // val sql2: String = "create INDEX ind_short on urls(short_url);"
+  private val logger = Logger(LoggerFactory.getLogger("Main logger"))
+  logger.info("Service started.")
+  private def createDBStructure(conn: Connection): Unit = {
     val stmt = conn.createStatement()
     try {
-      //drop schema urlShortener2
-      //create schema if not exists urlShortener2;
-      //set schema urlShortener2;
-      val sql1 = """
+      val sql = """
         create table if not exists urls (
         id int auto_increment primary key,
         short_url varchar(255) not null,
         long_url varchar(255) not null,
         clicks int not null);"""
-      stmt.execute(sql1)
-    //  stmt.execute(sql2)
-      println("DB created")
+      stmt.execute(sql)
     } finally {
-      stmt.close
+      stmt.close()
     }
   }
 
   def main(args: Array[String]): Unit = {
+
+    if(File(Path("db/urlShortener.mv.db")).exists) logger.info("DB exists.")
+    else logger.info("Creating DB."); createDBStructure(conn)
+
     try {
-      lazy val routes: Route = url2Routes
-      val bindingFuture = Http().bindAndHandle(routes, "localhost", 8080)
+      lazy val URLroutes: Route = routes
+      val bindingFuture = Http().bindAndHandle(URLroutes, "localhost", 8080)
 
       println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
       StdIn.readLine() // let it run until user presses return

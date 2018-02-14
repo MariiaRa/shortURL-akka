@@ -1,39 +1,26 @@
 package ua.com.actors
 
-
 import akka.actor._
-import ua.com.actors.URLRegistryActor.NotFoundMessage
-import ua.com.entity._
+import ua.com.entity.{InputURL, ShortURL, ValidURL}
+import ua.com.service.{DBService, UrlService}
 
-object CoordinatorActor{
-  def props(validator: ActorRef, urlRegistryActor: ActorRef, makeShortURLActor: ActorRef): Props =
-    Props(new CoordinatorActor(validator, urlRegistryActor, makeShortURLActor))
-
-  case class SaveURL(url1: String, url2: String)
-
+object CoordinatorActor {
+case object AllStatsRequest
+  case class URLStatsRequest(url: String)
+  def props(urlService: UrlService, dbService: DBService): Props = Props(new CoordinatorActor(urlService, dbService))
 }
 
-class CoordinatorActor(validator: ActorRef, urlRegistryActor: ActorRef, makeShortURLActor: ActorRef) extends Actor{
-  import CoordinatorActor._
+class CoordinatorActor(urlService: UrlService, dbService: DBService) extends Actor with ActorLogging{
+import CoordinatorActor._
 
-
-   override def receive = {
-       case a: InputURL =>
-         println("Received input url")
-         validator ! a
-       case b: ValidURL =>
-         urlRegistryActor ! b
-       case c: NotFoundMessage =>
-         println("Received valid url for saving")
-         makeShortURLActor ! c.str
-       case d: SaveURL =>
-         urlRegistryActor ! d
-       case e: ShortURL =>
-println(e.url)
-                  }
-
-
-
-
-   }
-
+  def receive: Receive = {
+    case a: InputURL =>
+      log.info("Received request for shortening")
+      if (urlService.validate(a.url)) {
+        sender() ! dbService.fetchByLongName(ValidURL(a.url))
+      }
+    case b: ShortURL => log.info(s"Received access request for short url ${b.url}"); sender() ! dbService.fetchByShortName(b.url)
+    case AllStatsRequest => log.info("Received request for url total stats"); sender() ! dbService.getAllStats
+    case c: URLStatsRequest => log.info(s"Received request for ${c.url} stats "); sender() ! dbService.getURLStats(ShortURL(c.url))
+  }
+}

@@ -1,13 +1,14 @@
 import akka.actor.ActorRef
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{ContentTypes, HttpRequest, MessageEntity, StatusCodes}
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
-import ua.com.Service.UrlService
-import ua.com.actors.URLRegistryActor2
+import ua.com.actors.CoordinatorActor
 import ua.com.entity.InputURL
 import ua.com.routing.URLRoutes
+import ua.com.service.{DBService, UrlService}
 
 class URLRoutesSpec extends WordSpec
   with Matchers
@@ -16,66 +17,51 @@ class URLRoutesSpec extends WordSpec
   with URLRoutes{
 
   lazy val urlService = new UrlService()
-  override val registrator2: ActorRef = system.actorOf(URLRegistryActor2.props(urlService), "Registrator")
-  lazy val routes = url2Routes
+  lazy val dbService = new DBService(urlService)
+  override val coordinator: ActorRef = system.actorOf(CoordinatorActor.props(urlService, dbService), "Registrator")
+  lazy val URLroutes: Route = routes
 
   "urlRoutes" should {
     "be able to add input url and receive a short url name" in {
       val input = InputURL("http://www.google.com")
 
-      val userEntity = Marshal(input).to[MessageEntity].futureValue // futureValue is from ScalaFutures
-
+      val userEntity = Marshal(input).to[MessageEntity].futureValue
       val request = Put("/urls").withEntity(userEntity)
 
-      request ~> routes ~> check {
+      request ~> URLroutes ~> check {
         status should ===(StatusCodes.Created)
-        // we expect the response to be json:
         contentType should ===(ContentTypes.`application/json`)
       }
     }
 
     "return stats for all urls in db (GET /stats)" in {
-      // note that there's no need for the host part in the uri:
+
       val request = HttpRequest(uri = "/urls/stats")
 
-      request ~> routes ~> check {
+      request ~> URLroutes ~> check {
         status should ===(StatusCodes.OK)
-
-        // we expect the response to be json:
         contentType should ===(ContentTypes.`application/json`)
-
-        // and no entries should be in the list:
-        entityAs[String] should ===("""{"totalURLCount":7,"totalClickCount":20}""")
+        entityAs[String] should ===("""{"totalURLCount":13,"totalClickCount":40}""")
       }
     }
 
     "return stats for one specific url in db (GET /stats/short url name)" in {
-      // note that there's no need for the host part in the uri:
-      val request = HttpRequest(uri = "/urls/stats/www.short.com/nJ-RpfRJ")
+      val request = HttpRequest(uri = "/urls/stats/www.short.com/dMZXgD63")
 
-      request ~> routes ~> check {
+      request ~> URLroutes ~> check {
         status should ===(StatusCodes.OK)
-
-        // we expect the response to be json:
         contentType should ===(ContentTypes.`application/json`)
-
-        // and no entries should be in the list:
-        entityAs[String] should ===("""{"clickCount":8}""")
+        entityAs[String] should ===("""{"clickCount":16}""")
       }
     }
 
     "return long url from db (GET /short url name)" in {
-      // note that there's no need for the host part in the uri:
-      val request = HttpRequest(uri = "/urls/www.short.com/nJ-RpfRJ")
+      val request = HttpRequest(uri = "/urls/www.short.com/dMZXgD63")
 
-      request ~> routes ~> check {
-        status should ===(StatusCodes.Found)
-
-        // we expect the response to be json:
+      request ~> URLroutes ~> check {
+        status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
-
-        // and no entries should be in the list:
-        entityAs[String] should ===("""{"url":"https://www.flickr.com"}""")
+        entityAs[String] should ===("""{"url":"http://www.dw.com"}""")
       }
     }
   }

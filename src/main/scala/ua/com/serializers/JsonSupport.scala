@@ -2,7 +2,7 @@ package ua.com.serializers
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.DefaultJsonProtocol._
-import ua.com.entity.{AllStats, InputURL, ShortURL, URLStats}
+import ua.com.entity._
 
 trait JsonSupport extends SprayJsonSupport {
 
