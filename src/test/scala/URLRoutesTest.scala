@@ -5,12 +5,11 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
-import ua.com.actors.CoordinatorActor
 import ua.com.entity.InputURL
 import ua.com.routing.URLRoutes
 import ua.com.service.{DBService, UrlService}
 
-class URLRoutesSpec extends WordSpec
+class URLRoutesTest extends WordSpec
   with Matchers
   with ScalaFutures
   with ScalatestRouteTest
@@ -41,7 +40,7 @@ class URLRoutesSpec extends WordSpec
       request ~> URLroutes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
-        entityAs[String] should ===("""{"totalURLCount":13,"totalClickCount":40}""")
+        entityAs[String] should ===("""{"totalURLCount":17,"totalClickCount":67223}""")
       }
     }
 
@@ -51,7 +50,7 @@ class URLRoutesSpec extends WordSpec
       request ~> URLroutes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
-        entityAs[String] should ===("""{"clickCount":16}""")
+        entityAs[String] should ===("""{"clickCount":25}""")
       }
     }
 
