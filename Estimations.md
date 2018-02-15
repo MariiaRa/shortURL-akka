@@ -26,7 +26,7 @@ Initial estimations for URL shortener project, v2
   10. Adde logging to project - 3h
   11. Write load test and perform testing with Gatling - 6h
   12. Write test report - 2h
-  13. Formatting code, fixing bugs, reading materials, etc ~6h 
+  13. Format code, fixing bugs, reading materials, etc ~6h 
   
   In total - one week
   
