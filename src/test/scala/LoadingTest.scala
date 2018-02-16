@@ -37,24 +37,4 @@ class LoadingTest extends Simulation {
 
   setUp(scn.inject(atOnceUsers(requestCount))).protocols(httpConf)
 
-  //setUp(scn.inject( constantUsersPerSec(900) during(5 seconds)).protocols(httpConf))
-
-  //setUp(scn.inject(constantUsersPerSec(1000) during(1 seconds))).protocols(httpConf)
-
-  //setUp(scn.inject(rampUsersPerSec(100) to 1000 during(10 seconds))).protocols(httpConf)
-
-  //setUp(scn.inject(heavisideUsers(1000) over(5 seconds))).protocols(httpConf)
-
-  //    setUp(
-  //      scn.inject(
-  //        nothingFor(4 seconds),
-  //        atOnceUsers(10),
-  //        rampUsers(10) over(5 seconds),
-  //        constantUsersPerSec(20) during(15 seconds),
-  //        constantUsersPerSec(20) during(15 seconds) randomized,
-  //        rampUsersPerSec(10) to 20 during(1 minute),
-  //        splitUsers(100) into(rampUsers(10) over(10 seconds)) separatedBy(10 seconds),
-  //        heavisideUsers(100) over(5 seconds)
-  //      ).protocols(httpConf)
-  //    )
 }
