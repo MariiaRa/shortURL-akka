@@ -37,6 +37,7 @@ trait URLRoutes extends JsonSupport {
                 (coordinator ? url).mapTo[Option[ShortURL]]
               onComplete(shortURLCreated) {
                 case Success(Some(shortURL)) => complete(StatusCodes.Created, shortURL)
+                case Success(None) => complete(400, None)
                 case Failure(ex) => logger.error(ex.getMessage); complete(400, None)
               }
             }
