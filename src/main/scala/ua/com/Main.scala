@@ -1,40 +1,65 @@
+import java.sql.Connection
 import akka.actor._
-import akka.http.scaladsl.server.Route
-import ua.com.actors._
-import ua.com.entity.InputURL
-import ua.com.routing.URLRoutes
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Route
+import akka.stream.ActorMaterializer
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
+import ua.com.actors._
+import ua.com.routing.URLRoutes
+import ua.com.service.{DBService, UrlService}
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import scala.io.StdIn
+import scala.reflect.io.{File, Path}
+
 object Main extends URLRoutes{
+  import ua.com.DBConfig._
+
+  implicit def system: ActorSystem = ActorSystem("URLShortener-akka")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val executionContext = system.dispatcher
+  val conn = dbConnection
+  val urlService = new UrlService()
+  val dbService = new DBService(urlService)
+  val coordinator: ActorRef = system.actorOf(CoordinatorActor.props(urlService, dbService), "Registrator")
+
+  private val logger = Logger(LoggerFactory.getLogger("Main logger"))
+  logger.info("Service started.")
+  private def createDBStructure(conn: Connection): Unit = {
+    val stmt = conn.createStatement()
+    try {
+      val sql = """
+        create table if not exists urls (
+        id int auto_increment primary key,
+        short_url varchar(255) not null,
+        long_url varchar(255) not null,
+        clicks int not null);"""
+      stmt.execute(sql)
+    } catch {
+      case ex: Exception =>
+        logger.error("An error occurred while creating a table: " + ex.getMessage)
+    } finally {
+      stmt.close()
+    }
+  }
 
   def main(args: Array[String]): Unit = {
-    // Create the 'URLShortener' actor system
-    val system = ActorSystem("URLShortener-akka")
-    /* implicit val materializer: ActorMaterializer = ActorMaterializer()*/
 
-    val validator: ActorRef = system.actorOf(ValidateURLActor.props, "ValidatorActor")
-    val urlShortner: ActorRef = system.actorOf(MakeShortURLActor.props, "URLShortnerActor")
-    val registrator: ActorRef = system.actorOf(URLRegistryActor.props(urlShortner), "RegistratorActor")
+    if(File(Path("db/urlShortener.mv.db")).exists) logger.info("DB exists.")
+    else logger.info("Creating DB."); createDBStructure(conn)
 
-    val coordinator: ActorRef = system.actorOf(CoordinatorActor.props(validator, registrator, urlShortner), "CoordinatorActor")
+    try {
+      lazy val URLroutes: Route = routes
+      val bindingFuture = Http().bindAndHandle(URLroutes, "localhost", 8080)
 
-    if (args.length == 0) println("No URL, please provide a valid URL.")
-    else coordinator ! InputURL(args(0))
+      Console.println("Server online at http://localhost:8080/\nPress RETURN to stop...")
 
-
-    lazy val routes: Route = urlRoutes
-
-    val bindingFuture = Http().bindAndHandle(routes, "localhost", 8080)
-
-    println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-    StdIn.readLine() // let it run until user presses return
-    bindingFuture
-      .flatMap(_.unbind()) // trigger unbinding from the port
-      .onComplete(_ => system.terminate())
-
-
+      StdIn.readLine()
+      bindingFuture
+        .flatMap(_.unbind())
+        .onComplete(_ => system.terminate())
+    } finally {
+      conn.close()
+    }
   }
 }
