@@ -1,18 +1,19 @@
 package ua.com.service
 
-import java.sql.ResultSet
+import java.sql.{ResultSet, SQLException}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import ua.com.entity._
 
 class DBService(urlService: UrlService) {
+
   import ua.com.DBConfig.dbConnection
 
   private val logger = Logger(LoggerFactory.getLogger("DB service logger"))
   val urlPrefix: String = "www.short.com/"
 
-  def fetchByLongName (url: ValidURL): ShortURL = {
+  def fetchByLongName(url: ValidURL): Option[ShortURL] = {
     val stmt = dbConnection.createStatement()
     try {
       val query: String = "SELECT SHORT_URL FROM urls WHERE LONG_URL = '" + url.url + "'"
@@ -21,24 +22,32 @@ class DBService(urlService: UrlService) {
       if (rs.next()) {
         logger.info(s"The requested URL(${url.url}) is already shortened and saved in DB.")
         val shortName: String = urlPrefix + rs.getString("SHORT_URL")
-        ShortURL(shortName)
+        Some(ShortURL(shortName))
       } else {
         val shortName: String = urlService.makeShort(url)
         saveDB(shortName, url.url)
       }
+    } catch {
+      case ex: SQLException =>
+        logger.error(s"An error occurred while searching url: ${url.url} in DB")
+        None
     } finally {
       stmt.close()
     }
   }
 
-  def saveDB(short: String, long: String): ShortURL = {
+  def saveDB(short: String, long: String): Option[ShortURL] = {
     val stmt = dbConnection.createStatement()
     try {
       val query: String = "INSERT INTO urls ( SHORT_URL, LONG_URL, CLICKS ) VALUES('" + short + "', '" + long + "', 0)"
       stmt.execute(query)
       val shortName: String = urlPrefix + short
       logger.debug(s"The requested URL $long is saved to DB as $short.")
-      ShortURL(shortName)
+      Some(ShortURL(shortName))
+    } catch {
+      case ex: SQLException =>
+        logger.error(s"An error occurred while saving url: $long to DB")
+        None
     } finally {
       stmt.close()
     }
@@ -59,12 +68,16 @@ class DBService(urlService: UrlService) {
         logger.error(s"An error occurred while getting URL $shortName, couldn't find this short url in DB")
         None
       }
+    } catch {
+      case ex: SQLException =>
+        logger.error("Exception message: " + ex.getMessage)
+        None
     } finally {
       stmt.close()
     }
   }
 
-  def getAllStats:Option[AllStats] = {
+  def getAllStats: Option[AllStats] = {
     val stmt = dbConnection.createStatement()
     try {
       val rs: ResultSet = stmt.executeQuery("SELECT COUNT(*) AS total_count, SUM(CLICKS) AS total_clicks FROM urls")
@@ -77,16 +90,20 @@ class DBService(urlService: UrlService) {
         logger.error(s"An error occurred while requesting url total stats from DB")
         None
       }
+    } catch {
+      case ex: SQLException =>
+        logger.error("Exception message: " + ex.getMessage)
+        None
     } finally {
       stmt.close()
     }
   }
 
-  def getURLStats (shortURL: ShortURL):Option[URLStats] = {
+  def getURLStats(shortURL: ShortURL): Option[URLStats] = {
     val shortName: String = shortURL.url.split("/")(1)
     val stmt = dbConnection.createStatement()
     try {
-      val rs: ResultSet = stmt.executeQuery("SELECT CLICKS AS url_clicks FROM urls WHERE SHORT_URL = '" + shortName+"'")
+      val rs: ResultSet = stmt.executeQuery("SELECT CLICKS AS url_clicks FROM urls WHERE SHORT_URL = '" + shortName + "'")
       logger.debug(s"Fetching stats for url ${shortURL.url}")
       if (rs.next()) {
         val singleURLClicks = rs.getInt("url_clicks")
@@ -95,6 +112,10 @@ class DBService(urlService: UrlService) {
         logger.error(s"An error occurred while requesting stats for url ${shortURL.url}, couldn't find this short url in DB")
         None
       }
+    } catch {
+      case ex: SQLException =>
+        logger.error("Exception message: " + ex.getMessage)
+        None
     } finally {
       stmt.close()
     }

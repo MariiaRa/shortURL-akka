@@ -1,23 +1,24 @@
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{ContentTypes, HttpRequest, MessageEntity, StatusCodes}
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 import ua.com.entity.InputURL
 import ua.com.routing.URLRoutes
 import ua.com.service.{DBService, UrlService}
 
+import scala.concurrent.duration._
 class URLRoutesTest extends WordSpec
   with Matchers
   with ScalaFutures
   with ScalatestRouteTest
   with URLRoutes{
-
+  implicit def default(implicit system: ActorSystem) = RouteTestTimeout(5 seconds)
   lazy val urlService = new UrlService()
   lazy val dbService = new DBService(urlService)
-  override val coordinator: ActorRef = system.actorOf(CoordinatorActor.props(urlService, dbService), "Registrator")
+  override val coordinator: ActorRef = system.actorOf(CoordinatorActor.props(urlService, dbService), "Coordinator")
   lazy val URLroutes: Route = routes
 
   "urlRoutes" should {

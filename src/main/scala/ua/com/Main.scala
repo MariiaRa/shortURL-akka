@@ -1,5 +1,4 @@
 import java.sql.Connection
-
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
@@ -36,6 +35,9 @@ object Main extends URLRoutes{
         long_url varchar(255) not null,
         clicks int not null);"""
       stmt.execute(sql)
+    } catch {
+      case ex: Exception =>
+        logger.error("An error occurred while creating a table: " + ex.getMessage)
     } finally {
       stmt.close()
     }
@@ -50,11 +52,12 @@ object Main extends URLRoutes{
       lazy val URLroutes: Route = routes
       val bindingFuture = Http().bindAndHandle(URLroutes, "localhost", 8080)
 
-      println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-      StdIn.readLine() // let it run until user presses return
+      Console.println("Server online at http://localhost:8080/\nPress RETURN to stop...")
+
+      StdIn.readLine()
       bindingFuture
-        .flatMap(_.unbind()) // trigger unbinding from the port
-        .onComplete(_ => system.terminate()) // and shutdown when done
+        .flatMap(_.unbind())
+        .onComplete(_ => system.terminate())
     } finally {
       conn.close()
     }

@@ -19,9 +19,10 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-trait URLRoutes extends JsonSupport{
+trait URLRoutes extends JsonSupport {
 
   implicit def system: ActorSystem
+
   implicit val coordinator: ActorRef
   implicit lazy val timeout: Timeout = Timeout(5.seconds)
   private val logger = Logger(LoggerFactory.getLogger("Url routes logger"))
@@ -32,11 +33,11 @@ trait URLRoutes extends JsonSupport{
         pathEnd {
           put {
             entity(as[InputURL]) { url =>
-              val shortURLCreated: Future[ShortURL] =
-                (coordinator ? url).mapTo[ShortURL]
+              val shortURLCreated: Future[Option[ShortURL]] =
+                (coordinator ? url).mapTo[Option[ShortURL]]
               onComplete(shortURLCreated) {
-                case Success(shortURL) => complete(StatusCodes.Created, shortURL)
-                case Failure(ex) => logger.error("Invalid url. Please, please provide a valid URL."); complete(400, None)
+                case Success(Some(shortURL)) => complete(StatusCodes.Created, shortURL)
+                case Failure(ex) => logger.error(ex.getMessage); complete(400, None)
               }
             }
           }
@@ -50,25 +51,25 @@ trait URLRoutes extends JsonSupport{
                 case None => complete(StatusCodes.NotFound)
               }
             }
-          }~
-             get {
-               path(Remaining){ url => ////http://localhost:8080/urls/stats/<shortURL>
-               val maybeURLStats: Future[Option[URLStats]] =
-                (coordinator ? URLStatsRequest(url)).mapTo[Option[URLStats]]
-               onSuccess(maybeURLStats) {
-                case Some(stats) => complete(StatusCodes.OK, stats)
-                case None => complete(StatusCodes.NotFound)
+          } ~
+            get {
+              path(Remaining) { url => ////http://localhost:8080/urls/stats/<shortURL>
+                val maybeURLStats: Future[Option[URLStats]] =
+                  (coordinator ? URLStatsRequest(url)).mapTo[Option[URLStats]]
+                onSuccess(maybeURLStats) {
+                  case Some(stats) => complete(StatusCodes.OK, stats)
+                  case None => complete(StatusCodes.NotFound)
+                }
               }
             }
-          }
         },
-       path(Remaining) { name => //http://localhost:8080/urls/<shortURL>
-         get {
-           val maybeURL: Future[Option[InputURL]] =
-             (coordinator ? ShortURL(name)).mapTo[Option[InputURL]]
-             onSuccess(maybeURL) {
-               case Some(url) => complete(StatusCodes.OK, url)
-               case None => complete(StatusCodes.NotFound)
+        path(Remaining) { name => //http://localhost:8080/urls/<shortURL>
+          get {
+            val maybeURL: Future[Option[InputURL]] =
+              (coordinator ? ShortURL(name)).mapTo[Option[InputURL]]
+            onSuccess(maybeURL) {
+              case Some(url) => complete(StatusCodes.OK, url)
+              case None => complete(StatusCodes.NotFound)
             }
           }
         }

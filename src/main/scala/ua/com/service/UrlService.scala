@@ -8,7 +8,7 @@ import ua.com.entity._
 
 import scala.concurrent.ExecutionContext
 
-class UrlService(implicit val executionContext: ExecutionContext){
+class UrlService(implicit val executionContext: ExecutionContext) {
 
   private val logger = Logger(LoggerFactory.getLogger("Url service logger"))
   private val alphabet: String = "bcdfghjkmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ23456789-_"

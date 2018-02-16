@@ -24,8 +24,8 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
 
 //load testing
 enablePlugins(GatlingPlugin)
-libraryDependencies +="io.gatling.highcharts" % "gatling-charts-highcharts" % "2.3.0" % "test"
-libraryDependencies +="io.gatling"            % "gatling-test-framework"    % "2.3.0" % "test"
+libraryDependencies += "io.gatling.highcharts" % "gatling-charts-highcharts" % "2.3.0" % "test"
+libraryDependencies += "io.gatling" % "gatling-test-framework" % "2.3.0" % "test"
 
 
 //resolvers are alternate resources provided for the projects on which there is a dependency
